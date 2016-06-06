@@ -19,6 +19,9 @@ package com.github.manouti.normalize;
  * under the License.
  */
 
+import org.apache.maven.plugin.MojoExecutionException;
+import org.codehaus.plexus.util.IOUtil;
+
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Date;
@@ -29,40 +32,37 @@ import java.util.jar.JarFile;
 import java.util.jar.JarOutputStream;
 import java.util.regex.Pattern;
 
-import org.apache.maven.plugin.MojoExecutionException;
-import org.codehaus.plexus.util.IOUtil;
-
 public class PomPropertiesTransformer {
-	private static Pattern commentPattern = Pattern.compile("^#.*$");
+    private static Pattern commentPattern = Pattern.compile("^#.*$");
 
-	public void normalizePropertiesFile(JarOutputStream jos, JarFile jar, JarEntry entry, Date timestamp) throws MojoExecutionException {
-		InputStream inputStream = null;
-		try {
-			inputStream = jar.getInputStream(entry);
-			String content = IOUtil.toString(inputStream);
-			List<String> lines = new ArrayList<String>();
+    public void normalizePropertiesFile(JarOutputStream jos, JarFile jar, JarEntry entry, Date timestamp) throws MojoExecutionException {
+        InputStream inputStream = null;
+        try {
+            inputStream = jar.getInputStream(entry);
+            String content = IOUtil.toString(inputStream);
+            List<String> lines = new ArrayList<String>();
             StringTokenizer stringTokenizer = new StringTokenizer(content, System.getProperty("line.separator"));
             while (stringTokenizer.hasMoreTokens()) {
-            	String line = stringTokenizer.nextToken();
-            	if(!commentPattern.matcher(line).matches()) {
-            		lines.add(line);
-            	}
+                String line = stringTokenizer.nextToken();
+                if (!commentPattern.matcher(line).matches()) {
+                    lines.add(line);
+                }
             }
 
             StringBuilder sb = new StringBuilder();
-            for(String line : lines) {
-            	sb.append(line);
-            	sb.append(System.getProperty("line.separator"));
+            for (String line : lines) {
+                sb.append(line);
+                sb.append(System.getProperty("line.separator"));
             }
 
-			JarEntry newEntry = new JarEntry(entry.getName()) ;
-			newEntry.setTime(timestamp.getTime());
-			jos.putNextEntry(newEntry);
-			IOUtil.copy(sb.toString(), jos);
-		} catch(Throwable th) {
-			throw new MojoExecutionException( "Error in manifest transformer", th );
-		} finally {
-			IOUtil.close( inputStream );
-		}
-	}
+            JarEntry newEntry = new JarEntry(entry.getName());
+            newEntry.setTime(timestamp.getTime());
+            jos.putNextEntry(newEntry);
+            IOUtil.copy(sb.toString(), jos);
+        } catch (Throwable th) {
+            throw new MojoExecutionException("Error in manifest transformer", th);
+        } finally {
+            IOUtil.close(inputStream);
+        }
+    }
 }

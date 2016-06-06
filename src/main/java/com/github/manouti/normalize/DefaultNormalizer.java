@@ -36,76 +36,75 @@ import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.jar.JarOutputStream;
 
-@Component( role = Normalizer.class, hint = "default" )
+@Component(role = Normalizer.class, hint = "default")
 public class DefaultNormalizer implements Normalizer {
 
-	private ManifestTransformer manifestTransformer = new ManifestTransformer();
-	private PomPropertiesTransformer pomPropertiesTransformer = new PomPropertiesTransformer();
+    private ManifestTransformer manifestTransformer = new ManifestTransformer();
+    private PomPropertiesTransformer pomPropertiesTransformer = new PomPropertiesTransformer();
 
-	@Override
-	public void normalize(File jarFile, Date timestamp, File outputFile) throws MojoExecutionException {
-		JarOutputStream jarOutputStream = null;
-		try {
+    @Override
+    public void normalize(File jarFile, Date timestamp, File outputFile) throws MojoExecutionException {
+        JarOutputStream jarOutputStream = null;
+        try {
             long timestampTime = timestamp.getTime();
 
-			JarFile jar = new JarFile(jarFile);
-			outputFile.getParentFile().mkdirs();
-			FileOutputStream fileOutputStream = new FileOutputStream(outputFile);
-			jarOutputStream = new JarOutputStream( new BufferedOutputStream(fileOutputStream));
-			// we expect no duplicate entries
-			List<String> fileNames = new ArrayList<String>();
-			List<String> dirNames = new ArrayList<String>();
+            JarFile jar = new JarFile(jarFile);
+            outputFile.getParentFile().mkdirs();
+            FileOutputStream fileOutputStream = new FileOutputStream(outputFile);
+            jarOutputStream = new JarOutputStream(new BufferedOutputStream(fileOutputStream));
+            // we expect no duplicate entries
+            List<String> fileNames = new ArrayList<String>();
+            List<String> dirNames = new ArrayList<String>();
 
-			String manifestDir = JarFile.MANIFEST_NAME.substring(0, JarFile.MANIFEST_NAME.indexOf("/") + 1);
+            String manifestDir = JarFile.MANIFEST_NAME.substring(0, JarFile.MANIFEST_NAME.indexOf("/") + 1);
 
-			// In first pass, we save all dirnames and file names.  The manifest is copied here
-			// to be certain it is first.  We do currently not consider indexes.
-			for (Enumeration<JarEntry> en = jar.entries(); en.hasMoreElements();) {
-				JarEntry entry = en.nextElement();
+            // In first pass, we save all dirnames and file names.  The manifest is copied here
+            // to be certain it is first.  We do currently not consider indexes.
+            for (Enumeration<JarEntry> en = jar.entries(); en.hasMoreElements(); ) {
+                JarEntry entry = en.nextElement();
                 entry.setTime(timestampTime);
 
-				String resource = entry.getName();
-				if (entry.isDirectory() && resource.equalsIgnoreCase(manifestDir)) {
+                String resource = entry.getName();
+                if (entry.isDirectory() && resource.equalsIgnoreCase(manifestDir)) {
                     jarOutputStream.putNextEntry(entry);
                 } else if (resource.equalsIgnoreCase(JarFile.MANIFEST_NAME)) {
                     manifestTransformer.normalizeManifest(jarOutputStream, jar, entry, timestamp);
-				} else if (entry.isDirectory()) {
-					dirNames.add(resource);
-				} else {
-					fileNames.add(resource);
-				}
-			}
+                } else if (entry.isDirectory()) {
+                    dirNames.add(resource);
+                } else {
+                    fileNames.add(resource);
+                }
+            }
 
-			Collections.sort(dirNames);
-			Collections.sort(fileNames);
-			List<String> entryNames = new ArrayList<String>();
-			entryNames.addAll(dirNames);
-			entryNames.addAll(fileNames);
+            Collections.sort(dirNames);
+            Collections.sort(fileNames);
+            List<String> entryNames = new ArrayList<String>();
+            entryNames.addAll(dirNames);
+            entryNames.addAll(fileNames);
 
+            // Second pass, for each sorted name ask for the corresponding entry and process it.
 
-			// Second pass, for each sorted name ask for the corresponding entry and process it.
+            for (String entryName : entryNames) {
+                JarEntry entry = (JarEntry) jar.getEntry(entryName);
+                entry.setTime(timestampTime);
 
-			for (String entryName: entryNames) {
-				JarEntry entry = (JarEntry) jar.getEntry(entryName);
-				entry.setTime(timestampTime);
-
-				String resource = entry.getName();
-				if(resource.endsWith("/pom.properties")) {
-					pomPropertiesTransformer.normalizePropertiesFile(jarOutputStream, jar, entry, timestamp);
-				} else {
-					jarOutputStream.putNextEntry(entry);
-					if (!entry.isDirectory()) {
-						InputStream inputStream = jar.getInputStream(entry);
-						IOUtil.copy(inputStream, jarOutputStream);
-					}
-				}
-			}
-		} catch (Throwable th) {
-			outputFile.delete();
-			throw new MojoExecutionException( "Error in default normalizer", th );
-		} finally {
-			IOUtil.close(jarOutputStream);
-		}
-	}
+                String resource = entry.getName();
+                if (resource.endsWith("/pom.properties")) {
+                    pomPropertiesTransformer.normalizePropertiesFile(jarOutputStream, jar, entry, timestamp);
+                } else {
+                    jarOutputStream.putNextEntry(entry);
+                    if (!entry.isDirectory()) {
+                        InputStream inputStream = jar.getInputStream(entry);
+                        IOUtil.copy(inputStream, jarOutputStream);
+                    }
+                }
+            }
+        } catch (Throwable th) {
+            outputFile.delete();
+            throw new MojoExecutionException("Error in default normalizer", th);
+        } finally {
+            IOUtil.close(jarOutputStream);
+        }
+    }
 
 }

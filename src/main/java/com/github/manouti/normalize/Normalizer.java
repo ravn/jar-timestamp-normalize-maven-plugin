@@ -26,16 +26,16 @@ import java.util.Date;
 import org.apache.maven.plugin.MojoExecutionException;
 
 public interface Normalizer {
-	String ROLE = Normalizer.class.getName();
+    String ROLE = Normalizer.class.getName();
 
-	/**
+    /**
      * Perform a normalization on the Jar entries.
      *
-     * @param File            the Jar file to normalize
-     * @param Date            the timestamp to set for entries
-     * @param outputFile      the path to the output file
+     * @param File       the Jar file to normalize
+     * @param Date       the timestamp to set for entries
+     * @param outputFile the path to the output file
      * @throws IOException
-	 * @throws MojoExecutionException 
+     * @throws MojoExecutionException
      */
-    void normalize( File jarFile, Date timestamp, File outputFile ) throws MojoExecutionException;
+    void normalize(File jarFile, Date timestamp, File outputFile) throws MojoExecutionException;
 }
